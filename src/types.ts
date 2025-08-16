@@ -37,6 +37,23 @@ export interface SimulatorCommand {
   scriptPath: string;
 }
 
+export interface JobCreateRequest {
+  jobName: string;
+  arguments?: string[];
+}
+
+export interface JobCreateResponse {
+  message: string;
+  jobId: string;
+  jobName: string;
+  arguments: string[];
+}
+
+export interface JobsListResponse {
+  totalJobs: number;
+  jobs: JobResponse[];
+}
+
 export interface JobPattern {
   pattern: string;
   matchCount: number;
@@ -48,6 +65,18 @@ export interface JobStats {
   totalJobs: number;
   overallSuccessRate: number;
   patterns: JobPattern[];
+}
+
+export interface HealthResponse {
+  status: string;
+  timestamp: string;
+  uptime: number;
+}
+
+export interface ErrorResponse {
+  error: string;
+  details?: string;
+  availableEndpoints?: string[];
 }
 
 export interface PatternAnalyzer {
