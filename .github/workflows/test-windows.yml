@@ -1,0 +1,82 @@
+name: Windows Build and Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to run on'
+        required: true
+        default: 'master'
+  push:
+    branches: [master, develop]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Test simulator
+        run: cmd /c "cpp-simulator.bat test-job arg1 arg2"
+        shell: pwsh
+
+      - name: Start service
+        run: |
+          Start-Process -FilePath "node" -ArgumentList "dist/server.js" -WindowStyle Hidden
+          Start-Sleep -Seconds 5
+        shell: pwsh
+
+      - name: Health check
+        run: |
+          $maxAttempts = 10
+          $attempt = 0
+          do {
+            try {
+              $response = Invoke-RestMethod -Uri "http://localhost:3000/health" -Method Get -TimeoutSec 2
+              Write-Host "Service ready"
+              break
+            } catch {
+              $attempt++
+              Start-Sleep -Seconds 2
+            }
+          } while ($attempt -lt $maxAttempts)
+          if ($attempt -eq $maxAttempts) { exit 1 }
+        shell: pwsh
+
+      - name: Test API
+        run: |
+          $job = @{ jobName = "test-job"; arguments = @("arg1", "arg2") } | ConvertTo-Json
+          $response = Invoke-RestMethod -Uri "http://localhost:3000/jobs" -Method Post -Body $job -ContentType "application/json"
+          Start-Sleep -Seconds 3
+          $jobs = Invoke-RestMethod -Uri "http://localhost:3000/jobs" -Method Get
+          $stats = Invoke-RestMethod -Uri "http://localhost:3000/stats" -Method Get
+          Write-Host "Tests completed successfully"
+        shell: pwsh
+
+      - name: Cleanup
+        if: always()
+        run: |
+          Get-Process -Name "node" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+        shell: pwsh

@@ -1,0 +1,82 @@
+name: macOS Build and Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to run on'
+        required: true
+        default: 'master'
+  push:
+    branches: [master, develop]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Test simulator
+        run: |
+          ./cpp-simulator.sh test-job arg1 arg2 || echo "Expected random failure (70% success rate)"
+
+      - name: Start service
+        run: |
+          node dist/server.js &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          sleep 5
+
+      - name: Health check
+        run: |
+          max_attempts=10
+          attempt=0
+          while [ $attempt -lt $max_attempts ]; do
+            if curl -s http://localhost:3000/health > /dev/null 2>&1; then
+              echo "Service ready"
+              break
+            else
+              attempt=$((attempt + 1))
+              sleep 2
+            fi
+          done
+          if [ $attempt -eq $max_attempts ]; then exit 1; fi
+
+      - name: Test API
+        run: |
+          curl -s -X POST http://localhost:3000/jobs \
+            -H "Content-Type: application/json" \
+            -d '{"jobName": "test-job", "arguments": ["arg1", "arg2"]}'
+          sleep 3
+          curl -s http://localhost:3000/jobs > /dev/null
+          curl -s http://localhost:3000/stats > /dev/null
+          echo "Tests completed successfully"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          if [ ! -z "$SERVER_PID" ]; then
+            kill $SERVER_PID 2>/dev/null || true
+          fi

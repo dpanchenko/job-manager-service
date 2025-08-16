@@ -12,7 +12,12 @@ set /a "rand=%RANDOM% %% 10 + 1"
 
 REM Simulate some processing time (1-3 seconds)
 set /a "sleepTime=%RANDOM% %% 3 + 1"
-timeout /t !sleepTime! > nul
+
+REM Use PowerShell for sleep, fallback to ping if PowerShell fails
+powershell -Command "Start-Sleep -Seconds !sleepTime!" 2>nul || (
+    echo Fallback: Using ping for delay
+    ping 127.0.0.1 -n !sleepTime! >nul 2>&1
+)
 
 REM 70% success rate - exit 0 if rand <= 7, exit 1 if rand > 7
 if !rand! LEQ 7 (
