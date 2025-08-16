@@ -2,15 +2,7 @@ import { spawn, ChildProcess } from 'child_process';
 import { v4 as uuidv4 } from 'uuid';
 import * as os from 'os';
 import * as path from 'path';
-import {
-  Job,
-  JobResponse,
-  JobStats,
-  JobPattern,
-  SimulatorCommand,
-  Platform,
-  PatternAnalyzer,
-} from './types';
+import { Job, JobResponse, JobStats, JobPattern, SimulatorCommand, Platform, PatternAnalyzer } from './types';
 
 export class JobManager {
   private jobs: Map<string, Job>;
@@ -39,10 +31,7 @@ export class JobManager {
     }
   }
 
-  public async startJob(
-    jobName: string,
-    jobArguments: string[] = [],
-  ): Promise<string> {
+  public async startJob(jobName: string, jobArguments: string[] = []): Promise<string> {
     const jobId = uuidv4();
     const startTime = new Date();
 
@@ -153,8 +142,7 @@ export class JobManager {
     } catch (error) {
       retryJob.status = 'crashed';
       retryJob.endTime = new Date();
-      retryJob.duration =
-        retryJob.endTime.getTime() - retryJob.startTime.getTime();
+      retryJob.duration = retryJob.endTime.getTime() - retryJob.startTime.getTime();
     }
   }
 
@@ -186,9 +174,7 @@ export class JobManager {
       };
     }
 
-    const successfulJobs = allJobs.filter(
-      (job: Job) => job.status === 'completed',
-    );
+    const successfulJobs = allJobs.filter((job: Job) => job.status === 'completed');
     const overallSuccessRate = successfulJobs.length / totalJobs;
 
     const patterns = this.analyzePatterns(allJobs, overallSuccessRate);
@@ -200,10 +186,7 @@ export class JobManager {
     };
   }
 
-  private analyzePatterns(
-    jobs: Job[],
-    overallSuccessRate: number,
-  ): JobPattern[] {
+  private analyzePatterns(jobs: Job[], overallSuccessRate: number): JobPattern[] {
     const patterns: JobPattern[] = [];
 
     patterns.push(this.analyzeJobNameLength(jobs, overallSuccessRate));
@@ -214,21 +197,15 @@ export class JobManager {
     return patterns.filter((pattern: JobPattern) => pattern.matchCount > 0);
   }
 
-  private analyzeJobNameLength: PatternAnalyzer = (
-    jobs: Job[],
-    overallRate: number,
-  ): JobPattern => {
+  private analyzeJobNameLength: PatternAnalyzer = (jobs: Job[], overallRate: number): JobPattern => {
     const longNameJobs = jobs.filter((job: Job) => job.name.length > 10);
     const successRate =
       longNameJobs.length > 0
-        ? longNameJobs.filter((job: Job) => job.status === 'completed').length /
-          longNameJobs.length
+        ? longNameJobs.filter((job: Job) => job.status === 'completed').length / longNameJobs.length
         : 0;
 
     const difference = ((successRate - overallRate) * 100).toFixed(0);
-    const differenceStr = difference.startsWith('-')
-      ? difference + '%'
-      : '+' + difference + '%';
+    const differenceStr = difference.startsWith('-') ? difference + '%' : '+' + difference + '%';
 
     return {
       pattern: 'Job name length > 10',
@@ -238,21 +215,13 @@ export class JobManager {
     };
   };
 
-  private analyzeJobNameDigits: PatternAnalyzer = (
-    jobs: Job[],
-    overallRate: number,
-  ): JobPattern => {
+  private analyzeJobNameDigits: PatternAnalyzer = (jobs: Job[], overallRate: number): JobPattern => {
     const digitJobs = jobs.filter((job: Job) => /\d/.test(job.name));
     const successRate =
-      digitJobs.length > 0
-        ? digitJobs.filter((job: Job) => job.status === 'completed').length /
-          digitJobs.length
-        : 0;
+      digitJobs.length > 0 ? digitJobs.filter((job: Job) => job.status === 'completed').length / digitJobs.length : 0;
 
     const difference = ((successRate - overallRate) * 100).toFixed(0);
-    const differenceStr = difference.startsWith('-')
-      ? difference + '%'
-      : '+' + difference + '%';
+    const differenceStr = difference.startsWith('-') ? difference + '%' : '+' + difference + '%';
 
     return {
       pattern: 'Job name contains digits',
@@ -262,21 +231,15 @@ export class JobManager {
     };
   };
 
-  private analyzeArgumentCount: PatternAnalyzer = (
-    jobs: Job[],
-    overallRate: number,
-  ): JobPattern => {
+  private analyzeArgumentCount: PatternAnalyzer = (jobs: Job[], overallRate: number): JobPattern => {
     const highArgJobs = jobs.filter((job: Job) => job.arguments.length >= 3);
     const successRate =
       highArgJobs.length > 0
-        ? highArgJobs.filter((job: Job) => job.status === 'completed').length /
-          highArgJobs.length
+        ? highArgJobs.filter((job: Job) => job.status === 'completed').length / highArgJobs.length
         : 0;
 
     const difference = ((successRate - overallRate) * 100).toFixed(0);
-    const differenceStr = difference.startsWith('-')
-      ? difference + '%'
-      : '+' + difference + '%';
+    const differenceStr = difference.startsWith('-') ? difference + '%' : '+' + difference + '%';
 
     return {
       pattern: 'Jobs with 3+ arguments',
@@ -286,23 +249,13 @@ export class JobManager {
     };
   };
 
-  private analyzeJobNamePrefix: PatternAnalyzer = (
-    jobs: Job[],
-    overallRate: number,
-  ): JobPattern => {
-    const testJobs = jobs.filter((job: Job) =>
-      job.name.toLowerCase().startsWith('test'),
-    );
+  private analyzeJobNamePrefix: PatternAnalyzer = (jobs: Job[], overallRate: number): JobPattern => {
+    const testJobs = jobs.filter((job: Job) => job.name.toLowerCase().startsWith('test'));
     const successRate =
-      testJobs.length > 0
-        ? testJobs.filter((job: Job) => job.status === 'completed').length /
-          testJobs.length
-        : 0;
+      testJobs.length > 0 ? testJobs.filter((job: Job) => job.status === 'completed').length / testJobs.length : 0;
 
     const difference = ((successRate - overallRate) * 100).toFixed(0);
-    const differenceStr = difference.startsWith('-')
-      ? difference + '%'
-      : '+' + difference + '%';
+    const differenceStr = difference.startsWith('-') ? difference + '%' : '+' + difference + '%';
 
     return {
       pattern: "Job name starts with 'test'",
