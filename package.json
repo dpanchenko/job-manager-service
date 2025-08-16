@@ -2,7 +2,7 @@
   "name": "job-manager-service",
   "version": "0.0.1",
   "description": "",
-  "main": "",
+  "main": "dist/server.js",
   "scripts": {
     "build": "tsc",
     "start": "npm run build && node dist/server.js",
@@ -11,9 +11,12 @@
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
-  "dependencies": {},
+  "dependencies": {
+    "uuid": "^9.0.0"
+  },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "@types/uuid": "^9.0.2",
     "prettier": "^3.6.2",
     "rimraf": "^5.0.0",
     "ts-node": "^10.9.0",
